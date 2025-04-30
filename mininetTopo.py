@@ -1,7 +1,3 @@
-'''
-Please add your name: Noah Park
-'''
-
 import os
 import sys
 import atexit
@@ -15,42 +11,57 @@ from mininet.node import RemoteController
 net = None
 
 class TreeTopo(Topo):		
-    def __init__(self):
+	def __init__(self):
 		# Initialize topology
-        Topo.__init__(self)
-    
-    def getContents(self, contents):
-        hosts = contents[0]
-        switch = contents[1]
-        links = contents[2]
-        linksInfo = contents[3:]
-        return hosts, switch, links, linksInfo
+		Topo.__init__(self)
 
-    def build(self):
-        # Read file contents
-        f = open(sys.argv[1],"r")
-        contents = f.read().split()
-        host, switch, link, linksInfo = self.getContents(contents)
-        print("Hosts: " + host)
-        print("switch: " + switch)
-        print("links: " + link)
-        print("linksInfo: " + str(linksInfo))
-        # Add switch
-        for x in range(1, int(switch) + 1):
-            sconfig = {'dpid': "%016x" % x}
-            self.addSwitch('s%d' % x, **sconfig)
-        # Add hosts
-        for y in range(1, int(host) + 1):
-            ip = '10.0.0.%d/8' % y
-            self.addHost('h%d' % y, ip=ip)
+	def getContents(self, contents):
+		hosts = contents[0]
+		switch = contents[1]
+		links = contents[2]
+		linksInfo = contents[3:]
+		return hosts, switch, links, linksInfo
 
-        # Add Links
-        for x in range(int(link)):
-            info = linksInfo[x].split(',')
-            host = info[0]
-            switch = info[1]
-            bandwidth = int(info[2])
-            self.addLink(host, switch)
+	def build(self):
+		"Create custom topo."
+		# k = int(input("Enter value of k for fat tree topology: "))
+		k = 4
+		print('k = ' + str(k))
+
+		# Add core switches
+		for i in range(1, 3):
+			for j in range(1, (k // 2) + 1):
+				self.addSwitch(f"10.{k}.{i}.{j}", dpid=f"00:00:00:00:00:{k:02}:{i:02}:{j:02}")
+		
+		# Add pod (aggregate/edge) switches
+		for pod_num in range(k):
+			for switch_num in range(k):
+				self.addSwitch(f"10.{pod_num}.{switch_num}.1", dpid=f"00:00:00:00:00:{pod_num:02}:{switch_num:02}:01")
+
+		# Add hosts, and host-edge links
+		for pod_num in range(k):
+			for switch_num in range(k // 2):
+				switch_addr = f"10.{pod_num}.{switch_num}.1"
+				for host_num in range(2, (k // 2) + 2):
+					host_addr = f"10.{pod_num}.{switch_num}.{host_num}"
+					self.addHost(host_addr, cpu=.5/4)
+					self.addLink(host_addr, switch_addr, bw=10, delay='5ms', loss=1, max_queue_size=1000, use_htb=True)
+
+		# Edge to aggregation links
+		for pod_num in range(k):
+			for edge_num in range(k // 2):
+				edge_addr = f"10.{pod_num}.{edge_num}.1"
+				for agg_num in range(k // 2, k):
+					agg_addr = f"10.{pod_num}.{agg_num}.1"
+					self.addLink(edge_addr, agg_addr, bw=10, delay='5ms', loss=1, max_queue_size=1000, use_htb=True)
+		
+		# Aggregation to core links
+		for pod_num in range(k):
+			for core_num in range(k // 2, k):
+				agg_addr = f"10.{pod_num}.{core_num}.1"
+				for i in range(1, (k // 2) + 1):
+					core_addr = f"10.{k}.{core_num - (k // 2) + 1}.{i}"
+					self.addLink(agg_addr, core_addr)
             
 	# You can write other functions as you need.
 
@@ -67,7 +78,7 @@ class TreeTopo(Topo):
 def startNetwork():
     info('** Creating the tree network\n')
     topo = TreeTopo()
-    controllerIP = sys.argv[2]
+    controllerIP = sys.argv[1]
 
     global net
     net = Mininet(topo=topo, link = TCLink,
@@ -88,18 +99,11 @@ def startNetwork():
             norm_max = int(0.5 * link_speed)
             
             # Create QoS Queues
-            os.system(f"sudo ovs-vsctl -- set Port {intf.name} qos=@newqos "
-                    f"-- --id=@newqos create QoS type=linux-htb other-config:max-rate={link_speed} queues=1=@q1,2=@q2 "
-                    f"-- --id=@q1 create queue other-config=min-rate={prem_min} "
-                    f"-- --id=@q2 create queue other-config=max-rate={norm_max} ")
-            info(f"Queues created for {intf.name}\n")
-
-    # Starter code command
-    # os.system('sudo ovs-vsctl -- set Port [INTERFACE] qos=@newqos \
-    #            -- --id=@newqos create QoS type=linux-htb other-config:max-rate=[LINK SPEED] queues=0=@q0,1=@q1,2=@q2 \
-    #            -- --id=@q0 create queue other-config:max-rate=[LINK SPEED] other-config:min-rate=[LINK SPEED] \
-    #            -- --id=@q1 create queue other-config:min-rate=[X] \
-    #            -- --id=@q2 create queue other-config:max-rate=[Y]')
+            # os.system(f"sudo ovs-vsctl -- set Port {intf.name} qos=@newqos "
+            #         f"-- --id=@newqos create QoS type=linux-htb other-config:max-rate={link_speed} queues=1=@q1,2=@q2 "
+            #         f"-- --id=@q1 create queue other-config=min-rate={prem_min} "
+            #         f"-- --id=@q2 create queue other-config=max-rate={norm_max} ")
+            # info(f"Queues created for {intf.name}\n")
 
     info('** Running CLI\n')
     CLI(net)
@@ -121,3 +125,5 @@ if __name__ == '__main__':
     # Tell mininet to print useful information
     setLogLevel('info')
     startNetwork()
+		
+	# Command: sudo python3 mininetTopo.py 0.0.0.0:6633
