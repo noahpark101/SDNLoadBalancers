@@ -24,10 +24,45 @@ How do we construct a fat tree -> easy, we already did it in a previous homework
 
 Goals
 4/29/25:
-Set up environment and create fat tree topology
+Set up environment and create fat tree topology (and maybe the control)
 
 4/30/25:
 Create first algorithm and set up experiment performance metrics (script)
 
 Rest:
 Do the rest -> I forgot which algorithms we were implementings
+
+High Level Ideas for Load Balancing:
+We preconfigure some paths from h1 to h2 -> and just round robin the links
+
+
+Round Robin:
+There is a package called NetworkX that can calculate all paths from one host to another (we round robin based on that by installing flow rules?)
+But aren't flow rules gonna make swtiches send traffic from h1 to h2 through same path?
+
+How do we fix this: we match based on IP + TCP port
+We match on those because we want to create parallel connections between h1 to h2 -> (so same traffic, but different TCP ports)
+Thus, each connection will use a different path (AKA round robin)
+
+So what does implementation look like?
+Given: we have a list of all paths from one host to another -> lets say h1 to h2 has 2 paths
+
+The controller is gonna have a counter from one host to another
+Lets say h1 to h2 packet comes in at TCP port src 10
+Controller will then install entries for path 1
+Incrment counter from h1 to h2
+
+Lets say h1 to h2 packet comes in at TCP port src 15 (b/c different TCP connections have same IPs but DIFFERENT ports) -> meaning it won't match the flow rules to go through path 1
+Controller will then install entries for path 2
+Incrment counter from h1 to h2
+
+Lets say h1 to h2 packet comes in at TCP port src 20 (b/c different TCP connections have same IPs but DIFFERENT ports) -> meaning it won't match the flow rules to go through path 1 or path 2
+We see that we are at counter 2 and we don't have a 3rd path
+Thus we install entries for path 1
+Incrment counter from h1 to h2
+
+Keeps going on
+
+
+
+
