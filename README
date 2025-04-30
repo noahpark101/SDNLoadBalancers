@@ -1,0 +1,33 @@
+Plan:
+
+Big Picture:
+We make multiple load balancing algorithms and compare performances
+
+Questions:
+
+1. What is the control group?
+shortest path algorithm
+    I'm thinking that we just static allocate a shortest path from one host to another
+
+2. How do we compare performances?
+We need to compare metrics (throughput, latency, etc.) from one host to another while they are under some network resource contention (b/c thats the whole point of load balancing) -> use iperf
+
+3. How do we standardize network resource contention?
+We have some background hosts sending to each other
+EX -> Our test metric will be the throughput and latency from h1 to h2
+In the background, our network resource contention will be h3 talking to h4 (we can add more if needed)
+Key point: there should not be enough bandwidth for one link to handle all that (they must compete for bandwidth on a single link)
+
+4. What network topology will we use?
+Fat tree -> multi path equal cost (I'm thinking k=4 cuz paper does 4)
+How do we construct a fat tree -> easy, we already did it in a previous homework
+
+Goals
+4/29/25:
+Set up environment and create fat tree topology
+
+4/30/25:
+Create first algorithm and set up experiment performance metrics (script)
+
+Rest:
+Do the rest -> I forgot which algorithms we were implementings
