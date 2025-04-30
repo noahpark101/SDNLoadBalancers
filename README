@@ -1,3 +1,5 @@
+sudo dhclient eth1
+
 Plan:
 
 
