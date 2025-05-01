@@ -69,4 +69,14 @@ Keeps going on
 
 
 
+map: key: (switch, host) value: port
+For every PacketIn
+you get the switch, src_ip, port it came from
+add that into the map (IFF the switch is directly connected to that host)
+
+Well how do you find out which switches are connected to a particular host?
+Just have text file storing that
+Each line -> {switch_name} {host}
+
+
 
