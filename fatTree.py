@@ -1,13 +1,20 @@
+import os
+import sys
+import atexit
+from mininet.net import Mininet
+from mininet.log import setLogLevel, info
+from mininet.cli import CLI
 from mininet.topo import Topo
+from mininet.link import TCLink
+from mininet.node import RemoteController
 
-class Question2Topo(Topo):
+
+class FatTree(Topo):
 	"Topology for Question 2."
 	
 	def build(self):
-		"Create custom topo."
-
-		k = int(input("Enter value of k for fat tree topology: "))
-		print('k = ' + str(k))
+		k = int(sys.argv[1])
+		info(f"Building FatTree k = {k}")
 
 		# Add core switches
 		for i in range(1, 3):
@@ -44,6 +51,30 @@ class Question2Topo(Topo):
 					core_addr = f"10.{k}.{core_num - (k // 2) + 1}.{i}"
 					self.addLink(agg_addr, core_addr)
 
-topos = {
-	'q2_topo': (lambda: Question2Topo())
-}
+def startNetwork():
+	info('** Creating the tree network\n')
+	topo = FatTree()
+	controllerIP = sys.argv[2]
+	global net
+	net = Mininet(topo=topo, link = TCLink,
+                  controller=lambda name: RemoteController(name, ip=controllerIP),
+                  listenPort=6633, autoSetMacs=True)
+	info('** Starting the network\n')
+	net.start()
+	info('** Running CLI\n')
+	CLI(net)
+
+def stopNetwork():
+    if net is not None:
+        net.stop()
+
+
+if __name__ == '__main__':
+
+    # Force cleanup on exit by registering a cleanup function
+    atexit.register(stopNetwork)
+
+
+    # Tell mininet to print useful information
+    setLogLevel('info')
+    startNetwork()
