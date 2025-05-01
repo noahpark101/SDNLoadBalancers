@@ -1,3 +1,6 @@
+For internet access:
+sudo dhclient eth1
+
 Plan:
 
 
