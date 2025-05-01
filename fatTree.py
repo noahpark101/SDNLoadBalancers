@@ -1,16 +1,15 @@
 import os
 import sys
 import atexit
-from mininet.net import Mininet
-from mininet.log import setLogLevel, info
-from mininet.cli import CLI
-from mininet.topo import Topo
-from mininet.link import TCLink
-from mininet.node import RemoteController
 
+from mininet.cli import CLI
+from mininet.link import TCLink
+from mininet.log import setLogLevel, info
+from mininet.net import Mininet
+from mininet.node import RemoteController
+from mininet.topo import Topo
 
 class FatTree(Topo):
-	"Topology for Question 2."
 	def __init__(self):
 		Topo.__init__(self)
 	
@@ -53,34 +52,30 @@ class FatTree(Topo):
 					core_addr = f"10.{k}.{core_num - (k // 2) + 1}.{i}"
 					self.addLink(agg_addr, core_addr)
 
-		#TODO:
-			#make it so that you write to a textfile of the switch_name host_name port_number
-			#afterwards, for control.py -> write the function to read the textfile to create a dictionary of key: (switch, host) value: port number
-				#NOTE: control.py is called first, so it will probably error -> keep trying until it works
+		# TODO: Write to a txt file where each line is a mapping of (switch_name, host_name) to port #.
+		# NOTE: control.py is called first, so it will probably error initially. Keep trying until it works.
+		
 def startNetwork():
 	info('** Creating the tree network\n')
 	topo = FatTree()
 	controllerIP = sys.argv[2]
 	global net
 	net = Mininet(topo=topo, link = TCLink,
-                  controller=lambda name: RemoteController(name, ip=controllerIP),
-                  listenPort=6633, autoSetMacs=True)
+                controller=lambda name: RemoteController(name, ip=controllerIP),
+                listenPort=6633, autoSetMacs=True)
 	info('** Starting the network\n')
 	net.start()
 	info('** Running CLI\n')
 	CLI(net)
 
 def stopNetwork():
-    if net is not None:
-        net.stop()
-
+  if net is not None:
+    net.stop()
 
 if __name__ == '__main__':
+  # Force cleanup on exit by registering a cleanup function
+  atexit.register(stopNetwork)
 
-    # Force cleanup on exit by registering a cleanup function
-    atexit.register(stopNetwork)
-
-
-    # Tell mininet to print useful information
-    setLogLevel('info')
-    startNetwork()
+  # Tell mininet to print useful information
+  setLogLevel('info')
+  startNetwork()
