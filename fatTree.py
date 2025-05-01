@@ -11,6 +11,8 @@ from mininet.node import RemoteController
 
 class FatTree(Topo):
 	"Topology for Question 2."
+	def __init__(self):
+		Topo.__init__(self)
 	
 	def build(self):
 		k = int(sys.argv[1])
@@ -33,7 +35,7 @@ class FatTree(Topo):
 				for host_num in range(2, (k // 2) + 2):
 					host_addr = f"10.{pod_num}.{switch_num}.{host_num}"
 					self.addHost(host_addr, cpu=.5/4)
-					self.addLink(host_addr, switch_addr, bw=10, delay='5ms', loss=1, max_queue_size=1000, use_htb=True)
+					self.addLink(host_addr, switch_addr, bw=10)
 
 		# Edge to aggregation links
 		for pod_num in range(k):
@@ -41,7 +43,7 @@ class FatTree(Topo):
 				edge_addr = f"10.{pod_num}.{edge_num}.1"
 				for agg_num in range(k // 2, k):
 					agg_addr = f"10.{pod_num}.{agg_num}.1"
-					self.addLink(edge_addr, agg_addr, bw=10, delay='5ms', loss=1, max_queue_size=1000, use_htb=True)
+					self.addLink(edge_addr, agg_addr, bw=10)
 		
 		# Aggregation to core links
 		for pod_num in range(k):
@@ -51,6 +53,10 @@ class FatTree(Topo):
 					core_addr = f"10.{k}.{core_num - (k // 2) + 1}.{i}"
 					self.addLink(agg_addr, core_addr)
 
+		#TODO:
+			#make it so that you write to a textfile of the switch_name host_name port_number
+			#afterwards, for control.py -> write the function to read the textfile to create a dictionary of key: (switch, host) value: port number
+				#NOTE: control.py is called first, so it will probably error -> keep trying until it works
 def startNetwork():
 	info('** Creating the tree network\n')
 	topo = FatTree()

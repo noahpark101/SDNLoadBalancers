@@ -20,18 +20,49 @@ class Controller(EventMixin):
         self.listenTo(core.openflow)
         core.openflow_discovery.addListeners(self)
         self.graph = nx.Graph()
+        self.link_to_port = {}
+
+
+    def _handle_LinkEvent(self, event):
+        link = event.link
+        switch1 = dpid_to_str(link.dpid1)
+        switch2 = dpid_to_str(link.dpid2)
+        port1 = event.link.port1
+        port2 = event.link.port2
+        self.link_to_port[(switch1, switch2)] = port1
+        self.link_to_port[(switch2, switch1)] = port2
+        self.graph.add_edge(switch1, switch2, port1=port1, port2=port2)
+
+        log.info(f"Link detected between {switch1} and {switch2} from {port1} to {port2}")
 
     def _handle_ConnectionUp(self, event):
-        log.info(f"Switch {event.dpid} connected.")
+        switch_name = dpid_to_str(event.dpid)
+        log.info(f"Switch {switch_name} connected.")
         # Add switch to the topology
-        self.graph.add_node(event.dpid)
+        self.graph.add_node(switch_name)
+
+        #TODO:
+        #Check to see if the switch is connected to hosts, if so add hosts as node into graph and add the edges too
+        #Also, do the txt file thing
+
     
     def _handle_PacketIn (self, event):
-        packet = event.parsed.find('ipv4')
-        if not packet:
-            return
-        
-        src_ip, dst_ip = packet.src_ip, packet.dst_ip
+        def flood (message = None):
+            msg = of.ofp_packet_out()
+            msg.data = event.ofp
+
+            msg.actions.append(of.ofp_action_output(port = of.OFPP_FLOOD))
+            event.connection.send(msg)
+            log.info("Flooding")
+
+        def forward (message = None):
+            packet = event.parsed.find('ipv4')
+            if not packet:
+                return
+            
+
+        forward()
+
 
 
 
