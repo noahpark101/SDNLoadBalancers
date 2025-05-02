@@ -77,6 +77,14 @@ class Controller(EventMixin):
             event.connection.send(msg)
             print(f"NEW FLOW RULE: port: {port} for switch: {switch_dpid} for dst ip : {dst_ip}")
 
+            #don't forget to send out msg to manually route packet once too
+            msg2 = of.ofp_packet_out()
+            msg2.data = event.ofp
+            msg2.actions.append(of.ofp_action_output(port = port))
+            event.connection.send(msg2)
+            log.info(f"Sent message to manually route packet that caused PacketIn")
+
+
         def forward (message = None):
             log.info("PacketIn Event Received")
             log.info(event.parsed)
