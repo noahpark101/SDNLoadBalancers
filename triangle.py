@@ -1,6 +1,7 @@
 import os
 import sys
 import atexit
+from time import sleep
 from mininet.net import Mininet
 from mininet.log import setLogLevel, info
 from mininet.cli import CLI
@@ -42,17 +43,43 @@ class TriangleTopo(Topo):
 
 
 def startNetwork():
-	info('** Creating the tree network\n')
-	topo = TriangleTopo()
-	controllerIP = sys.argv[1]
-	global net
-	net = Mininet(topo=topo, link = TCLink,
+    info('** Creating the tree network\n')
+    topo = TriangleTopo()
+    controllerIP = sys.argv[1]
+    global net
+    net = Mininet(topo=topo, link = TCLink,
                   controller=lambda name: RemoteController(name, ip=controllerIP),
                   listenPort=6633, autoSetMacs=True)
-	info('** Starting the network\n')
-	net.start()
-	info('** Running CLI\n')
-	CLI(net)
+    info('** Starting the network\n')
+    net.start()
+
+    # BENCHMARKING SCRIPT
+    info('** Starting the benchmark\n')
+    h1, h2, h3, h4 = net.get('h1', 'h2', 'h3', 'h4')
+
+    # Run iperf servers for h2/h4
+    h2.cmd('iperf -s &')
+    h4.cmd('iperf -s &')
+    sleep(5) # Wait for controller to finish
+
+    # Run experiment in background
+    info('** Starting background traffic\n')
+    h3.cmd('iperf -c {} -P 4 -t 25 > h3_to_h4.txt &'.format(h4.IP()))
+    sleep(5)
+    info('** Starting actual traffic\n')
+    h1.cmd('iperf -c {} -P 4 -t 20 > h1_to_h2.txt &'.format(h2.IP()))
+    info('** Wait for results')
+    sleep(25) # Wait for results
+
+    info("*** Results:\n")
+    info("h1 -> h2:\n")
+    info(h1.cmd('cat h1_to_h2.txt'))
+    # info("h3 -> h4:\n")
+    # info(h3.cmd('cat h3_to_h4.txt'))
+    info('** End of benchmark\n')
+
+    info('** Running CLI\n')
+    CLI(net)
 
 def stopNetwork():
     if net is not None:
@@ -68,3 +95,4 @@ if __name__ == '__main__':
     # Tell mininet to print useful information
     setLogLevel('info')
     startNetwork()
+
