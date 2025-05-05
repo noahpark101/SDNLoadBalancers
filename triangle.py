@@ -25,6 +25,8 @@ class TriangleTopo(Topo):
         s2 = self.addSwitch('s2', dpid='0000000000000002')
         s3 = self.addSwitch('s3', dpid='0000000000000003')
         s4 = self.addSwitch('s4', dpid='0000000000000004')
+        s5 = self.addSwitch('s5', dpid='0000000000000005')
+        s6 = self.addSwitch('s6', dpid='0000000000000006')
         # Main traffic
         self.addLink(h1, s1, bw = bw)
         self.addLink(h2, s4, bw = bw)
@@ -38,9 +40,10 @@ class TriangleTopo(Topo):
         self.addLink(s1, s3, bw = bw)
         self.addLink(s2, s4, bw = bw)
         self.addLink(s3, s4, bw = bw)
-            
-            
 
+        self.addLink(s1, s5, bw = bw)
+        self.addLink(s5, s6, bw = bw)
+        self.addLink(s6, s4, bw = bw)
 
 def startNetwork():
     info('** Creating the tree network\n')
@@ -64,7 +67,7 @@ def startNetwork():
 
     # Run experiment in background
     info('** Starting background traffic\n')
-    h3.cmd('iperf -c {} -P 4 -t 25 > h3_to_h4.txt &'.format(h4.IP()))
+    h3.cmd('iperf -c {} -P 8 -t 25 > h3_to_h4.txt &'.format(h4.IP()))
     sleep(5)
     info('** Starting actual traffic\n')
     h1.cmd('iperf -c {} -P 4 -t 20 > h1_to_h2.txt &'.format(h2.IP()))
@@ -74,8 +77,6 @@ def startNetwork():
     info("*** Results:\n")
     info("h1 -> h2:\n")
     info(h1.cmd('cat h1_to_h2.txt'))
-    # info("h3 -> h4:\n")
-    # info(h3.cmd('cat h3_to_h4.txt'))
     info('** End of benchmark\n')
 
     info('** Running CLI\n')
@@ -95,4 +96,3 @@ if __name__ == '__main__':
     # Tell mininet to print useful information
     setLogLevel('info')
     startNetwork()
-
